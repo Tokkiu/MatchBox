@@ -1,0 +1,7 @@
+faiss-cpu
+PyYAML
+pandas
+scikit-learn
+numpy
+h5py
+tqdm
