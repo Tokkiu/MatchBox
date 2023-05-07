@@ -74,8 +74,8 @@ class Correct(BaseModel):
                                             required_feature_coluCorrect=[item_id_field])
             self.global_bias = nn.Parameter(torch.zeros(1))
         self.dropout = nn.Dropout(net_dropout)
-        self.arr_A = torch.zeros(self.num_items+1).to(self.device)
-        self.arr_B = torch.ones(self.num_items+1).to(self.device) * 100
+        self.arr_A = torch.zeros(self.num_items).to(self.device)
+        self.arr_B = torch.ones(self.num_items).to(self.device) * 100
         self.step = 0
         self.lr = learning_rate
         self.compile(lr=learning_rate, **kwargs)
