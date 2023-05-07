@@ -44,6 +44,7 @@ class MNS(BaseModel):
                  net_regularizer=None,
                  embedding_regularizer=None,
                  similarity_score="dot",
+                 num_items=-1,
                  **kwargs):
         super(MNS, self).__init__(feature_map, 
                                       model_id=model_id, 
@@ -55,6 +56,7 @@ class MNS(BaseModel):
                                       **kwargs)
         self.similarity_score = similarity_score
         self.embedding_dim = embedding_dim
+        self.num_items = num_items
         self.user_id_field = user_id_field
         self.user_history_field = user_history_field
         self.embedding_layer = EmbeddingDictLayer(feature_map, embedding_dim)
@@ -73,15 +75,34 @@ class MNS(BaseModel):
             self.global_bias = nn.Parameter(torch.zeros(1))
         self.dropout = nn.Dropout(net_dropout)
         self.compile(lr=learning_rate, **kwargs)
-            
+
+
+    def sample_in_batch(self, samples, batch):
+        sampling_probs = np.ones(self.num_items) / self.num_items  # uniform sampling
+        sampled_items = []
+        pos_items = samples[:, 0].numpy()
+        for i in range(batch):
+            pos_item = samples[i][0]
+            probs = np.array(sampling_probs)
+            probs[pos_items] = 0
+            probs = probs / np.sum(probs)  # renomalize to sum 1
+            neg_in_batch = np.delete(pos_items, np.where(pos_items==pos_item.numpy()))
+            neg_in_uni = np.random.choice(self.num_items, size=self.num_negs-len(neg_in_batch), replace=True, p=probs)
+            negs = np.concatenate([np.array([pos_item]), neg_in_batch, neg_in_uni]).tolist()
+            sampled_items += negs
+        return torch.tensor(sampled_items).to(samples.device)
+
     def forward(self, inputs):
         """
         Inputs: [user_dict, item_dict, label]
         """
         user_dict, item_dict, labels = inputs[0:3]
+        batch = user_dict['user_id'].size(0)
         user_vecs = self.user_tower(user_dict)
         user_vecs = self.dropout(user_vecs)
+        item_dict['item_id'] = self.sample_in_batch(item_dict['item_id'].view(user_vecs.size(0), self.num_negs + 1), batch)
         item_vecs = self.item_tower(item_dict)
+
         y_pred = torch.bmm(item_vecs.view(user_vecs.size(0), self.num_negs + 1, -1), 
                            user_vecs.unsqueeze(-1)).squeeze(-1)
         if self.enable_bias: # user_bias and global_bias only influence training, but not inference for ranking

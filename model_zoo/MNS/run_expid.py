@@ -53,10 +53,11 @@ if __name__ == '__main__':
             params["test_data"] = os.path.join(data_dir, 'test*.h5')
         params["item_corpus"] = os.path.join(data_dir, 'item_corpus.h5')
 
+    train_gen, valid_gen = datasets.h5_generator(feature_map, stage='train', **params)
+    params['num_items'] = train_gen.dataset.num_items
     model_class = getattr(models, params['model'])
     model = model_class(feature_map, **params)
     model.count_parameters() # print number of parameters used in model
-    train_gen, valid_gen = datasets.h5_generator(feature_map, stage='train', **params)
     model.fit(train_gen, valid_generator=valid_gen, **params)
     model.load_weights(model.checkpoint)
 
