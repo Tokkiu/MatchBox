@@ -56,7 +56,7 @@ class MNS(BaseModel):
                                       **kwargs)
         self.similarity_score = similarity_score
         self.embedding_dim = embedding_dim
-        self.num_items = num_items
+        self.num_items = num_items+1
         self.user_id_field = user_id_field
         self.user_history_field = user_history_field
         self.embedding_layer = EmbeddingDictLayer(feature_map, embedding_dim)
@@ -81,10 +81,12 @@ class MNS(BaseModel):
         sampling_probs = np.ones(self.num_items) / self.num_items  # uniform sampling
         sampled_items = []
         pos_items = samples[:, 0].numpy()
+        # print(samples[:, 0].max().numpy(), self.num_items)
         for i in range(batch):
             pos_item = samples[i][0]
             probs = np.array(sampling_probs)
             probs[pos_items] = 0
+            probs[self.num_items] = 0
             probs = probs / np.sum(probs)  # renomalize to sum 1
             neg_in_batch = np.delete(pos_items, np.where(pos_items==pos_item.numpy()))
             neg_in_uni = np.random.choice(self.num_items, size=self.num_negs-len(neg_in_batch), replace=True, p=probs)

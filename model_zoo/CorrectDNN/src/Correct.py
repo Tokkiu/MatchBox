@@ -56,7 +56,7 @@ class Correct(BaseModel):
                                       **kwargs)
         self.similarity_score = similarity_score
         self.embedding_dim = embedding_dim
-        self.num_items = num_items
+        self.num_items = num_items + 1
         self.user_id_field = user_id_field
         self.user_history_field = user_history_field
         self.embedding_layer = EmbeddingDictLayer(feature_map, embedding_dim)
@@ -84,9 +84,11 @@ class Correct(BaseModel):
     def sample_in_batch(self, samples, batch):
         sampling_probs = self.arr_B  # uniform sampling
         sampled_items = []
+        # print(samples[:, 0].max().numpy(), self.num_items)
         pos_items = samples[:, 0].numpy()
         probs = np.array(sampling_probs)
         probs[pos_items] = 0
+        probs[self.num_items] = 0
         probs = probs / np.sum(probs)  # renomalize to sum 1
         neg_in_uni = np.random.choice(self.num_items, size=self.num_negs, replace=True, p=probs)
 
