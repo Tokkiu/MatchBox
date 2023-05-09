@@ -86,7 +86,7 @@ class MNS(BaseModel):
             pos_item = samples[i][0]
             probs = np.array(sampling_probs)
             probs[pos_items] = 0
-            probs[self.num_items] = 0
+            probs[-1] = 0
             probs = probs / np.sum(probs)  # renomalize to sum 1
             neg_in_batch = np.delete(pos_items, np.where(pos_items==pos_item.numpy()))
             neg_in_uni = np.random.choice(self.num_items, size=self.num_negs-len(neg_in_batch), replace=True, p=probs)

@@ -88,19 +88,22 @@ class Correct(BaseModel):
         pos_items = samples[:, 0].numpy()
         probs = np.array(sampling_probs)
         probs[pos_items] = 0
-        probs[self.num_items] = 0
+        probs[-1] = 0
         probs = probs / np.sum(probs)  # renomalize to sum 1
-        neg_in_uni = np.random.choice(self.num_items, size=self.num_negs, replace=True, p=probs)
-
+        neg_in_unis = set(pos_items)
         # Reconstruct the negative samples
         for i in range(batch):
             pos_item = samples[i][0]
-            negs = np.concatenate([np.array([pos_item]), neg_in_uni]).tolist()
+            neg_in_batch = np.delete(pos_items, np.where(pos_items==pos_item.numpy()))
+            neg_in_uni = np.random.choice(self.num_items, size=self.num_negs-len(neg_in_batch), replace=True, p=probs)
+            negs = np.concatenate([np.array([pos_item]), neg_in_batch, neg_in_uni]).tolist()
             sampled_items += negs
+            for neg in neg_in_uni:
+                neg_in_unis.add(neg)
 
         # Update array A and B
         self.step += 1
-        for item in neg_in_uni:
+        for item in neg_in_unis:
             self.arr_B[item] = (1-self.lr)*self.arr_B[item] + self.lr*(self.step-self.arr_A[item])
             self.arr_A[item] = self.step
 
