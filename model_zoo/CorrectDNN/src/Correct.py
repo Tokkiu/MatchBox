@@ -21,6 +21,7 @@ from matchbox.pytorch.models import BaseModel
 from matchbox.pytorch.layers import EmbeddingDictLayer, EmbeddingLayer
 import torch.nn.functional as F
 import numpy as np
+from collections import Counter, OrderedDict
 
 
 class Correct(BaseModel):
@@ -78,36 +79,9 @@ class Correct(BaseModel):
         self.arr_B = torch.ones(self.num_items).to(self.device) * 100
         self.step = 0
         self.lr = learning_rate
+        self.cos = Similarity(kwargs["temp"])
         self.compile(lr=learning_rate, **kwargs)
 
-
-    def sample_in_batch(self, samples, batch):
-        sampling_probs = self.arr_B  # uniform sampling
-        sampled_items = []
-        # print(samples[:, 0].max().numpy(), self.num_items)
-        pos_items = samples[:, 0].numpy()
-        probs = np.array(sampling_probs)
-        probs[pos_items] = 0
-        probs[-1] = 0
-        probs = probs / np.sum(probs)  # renomalize to sum 1
-        neg_in_unis = set(pos_items)
-        # Reconstruct the negative samples
-        for i in range(batch):
-            pos_item = samples[i][0]
-            neg_in_batch = np.delete(pos_items, np.where(pos_items==pos_item.numpy()))
-            neg_in_uni = np.random.choice(self.num_items, size=self.num_negs-len(neg_in_batch), replace=True, p=probs)
-            negs = np.concatenate([np.array([pos_item]), neg_in_batch, neg_in_uni]).tolist()
-            sampled_items += negs
-            for neg in neg_in_uni:
-                neg_in_unis.add(neg)
-
-        # Update array A and B
-        self.step += 1
-        for item in neg_in_unis:
-            self.arr_B[item] = (1-self.lr)*self.arr_B[item] + self.lr*(self.step-self.arr_A[item])
-            self.arr_A[item] = self.step
-
-        return torch.tensor(sampled_items).to(samples.device)
 
     def forward(self, inputs):
         """
@@ -117,17 +91,29 @@ class Correct(BaseModel):
         batch = user_dict['user_id'].size(0)
         user_vecs = self.user_tower(user_dict)
         user_vecs = self.dropout(user_vecs)
-        item_dict['item_id'] = self.sample_in_batch(item_dict['item_id'].view(user_vecs.size(0), self.num_negs + 1), batch)
-        item_vecs = self.item_tower(item_dict)
+        samples = item_dict['item_id'].view(user_vecs.size(0), self.num_negs + 1)
+        item_vecs = self.item_tower(item_dict).view(batch, self.num_negs+1, -1)
+        pos_item_vecs = item_vecs[:, 0, :]
 
-        y_pred = torch.bmm(item_vecs.view(user_vecs.size(0), self.num_negs + 1, -1), 
-                           user_vecs.unsqueeze(-1)).squeeze(-1)
-        y_bias = (1/self.arr_B[item_dict['item_id'].view(user_vecs.size(0), self.num_negs + 1)]).log()
-        y_pred -= y_bias
-        if self.enable_bias: # user_bias and global_bias only influence training, but not inference for ranking
-            y_pred += self.user_bias(self.to_device(user_dict)) + self.global_bias
-        loss = self.get_total_loss(y_pred, labels)
-        return_dict = {"loss": loss, "y_pred": y_pred}
+        score = self.cos(user_vecs.unsqueeze(1), pos_item_vecs.unsqueeze(0))
+
+        pos_items = samples[:, 0].cpu().numpy()
+        in_batch_freqs = Counter(pos_items)
+        logQ_correction = (
+            torch.log(
+                torch.tensor(
+                    [in_batch_freqs[i] for i in pos_items], dtype=torch.float32
+                )
+                + 1e-6
+            )
+            .reshape((1, -1))
+            .to(self.device)
+        )
+        score -= logQ_correction
+
+        labels = torch.arange(score.size(0)).long().to(self.device)
+        loss = self.get_total_loss(score, labels)
+        return_dict = {"loss": loss, "y_pred": score}
         return return_dict
 
     def user_tower(self, inputs):
@@ -152,7 +138,14 @@ class Correct(BaseModel):
             item_vec = torch.cat([item_vec, self.item_bias(item_inputs)], dim=-1)
         return item_vec
 
+class Similarity(nn.Module):
+    def __init__(self, temp):
+        super().__init__()
+        self.temp = temp
+        self.cos = nn.CosineSimilarity(dim=-1)
 
+    def forward(self, x, y):
+        return self.cos(x, y) / self.temp
 class BehaviorAggregator(nn.Module):
     def __init__(self, embedding_dim, gamma=0.5, aggregator="mean", dropout_rate=0.):
         super(BehaviorAggregator, self).__init__()

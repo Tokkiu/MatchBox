@@ -21,11 +21,13 @@ if __name__ == '__main__':
     parser.add_argument('--config', type=str, default='../config/', help='The config directory.')
     parser.add_argument('--expid', type=str, help='The experiment id to run.')
     parser.add_argument('--gpu', type=int, default=-1, help='The gpu index, -1 for cpu')
-    
+    parser.add_argument('--temp', type=float, default=1, help='The cos temp')
+
     args = vars(parser.parse_args())
     experiment_id = args['expid']
     params = load_config(args['config'], experiment_id)
     params['gpu'] = args['gpu']
+    params['temp'] = args['temp']
 
     set_logger(params)
     logging.info(print_to_json(params))
