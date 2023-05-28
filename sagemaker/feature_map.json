@@ -1,0 +1,35 @@
+{
+    "dataset_id": "yelp18_m1_002",
+    "num_fields": 4,
+    "num_features": 76100,
+    "num_items": 38048,
+    "query_index": "query_index",
+    "corpus_index": "corpus_index",
+    "label_name": "label",
+    "feature_specs": {
+        "query_index": {
+            "source": "",
+            "type": "index"
+        },
+        "corpus_index": {
+            "source": "",
+            "type": "index"
+        },
+        "user_history": {
+            "source": "user",
+            "type": "sequence",
+            "min_categr_count": 1,
+            "embedding_callback": "layers.MaskedAveragePooling()",
+            "padding_idx": 38049,
+            "vocab_size": 38050,
+            "max_len": 200
+        },
+        "item_id": {
+            "source": "item",
+            "type": "categorical",
+            "min_categr_count": 1,
+            "share_embedding": "user_history",
+            "vocab_size": 38050
+        }
+    }
+}
