@@ -45,8 +45,6 @@ def load_data_and_model(model_dir):
     params = load_config(model_dir, "YouTubeNet_yelp18_m1")
     params['gpu'] = -1
 
-    set_logger(params)
-    logging.info(print_to_json(params))
     seed_everything(seed=params['seed'])
 
     json_file = os.path.join(params['data_root'], "feature_map.json")
