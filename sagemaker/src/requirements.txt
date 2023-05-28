@@ -1,1 +1,2 @@
--e git+https://github.com/Tokkiu/MatchBox.git@sage
+-e git+https://github.com/Tokkiu/MatchBox.git@sage#egg=matchbox
+torch
