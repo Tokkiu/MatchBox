@@ -1,5 +1,5 @@
 yelp18_m1_002:
-    data_root: Yelp18/
+    data_root: ./
     data_format: csv
     train_data: Yelp18/yelp18_m1/train.csv
     valid_data: Yelp18/yelp18_m1/test.csv

@@ -24,7 +24,7 @@ from YouTubeNet import YouTubeNet
 import pandas as pd
 
 
-def load_data_and_model(model_file):
+def load_data_and_model(model_dir):
     r"""Load filtered dataset, split dataloaders and saved model.
 
     Args:
@@ -39,40 +39,27 @@ def load_data_and_model(model_file):
             - valid_data (AbstractDataLoader): The dataloader for validation.
             - test_data (AbstractDataLoader): The dataloader for testing.
     """
-    params = load_config("config/YouTubeNet_yelp18_m1", "YouTubeNet_yelp18_m1")
+    model_file = os.path.join(model_dir, "model.pt")
+    print(f"model_file_path: :  {model_file}")
+
+    params = load_config(model_dir, "YouTubeNet_yelp18_m1")
     params['gpu'] = -1
 
     set_logger(params)
     logging.info(print_to_json(params))
     seed_everything(seed=params['seed'])
 
-    data_dir = os.path.join(params['data_root'], params['dataset_id'])
-    if params.get("data_format") == 'h5':
-        feature_map = FeatureMap(params['dataset_id'], data_dir, params['version'])
-        json_file = os.path.join(os.path.join(params['data_root'], params['dataset_id']), "feature_map.json")
-        if os.path.exists(json_file):
-            feature_map.load(json_file)
-        else:
-            raise RuntimeError('feature_map not exist!')
-    else:
-        feature_encoder = FeatureEncoder(**params)
-        if os.path.exists(feature_encoder.json_file):
-            feature_encoder.feature_map.load(feature_encoder.json_file)
-        else:  # Build feature_map and transform h5 data
-            datasets.build_dataset(feature_encoder, **params)
-        feature_map = feature_encoder.feature_map
-        params["train_data"] = os.path.join(data_dir, 'train*.h5')
-        params["valid_data"] = os.path.join(data_dir, 'valid*.h5')
-        if "test_data" in params:
-            params["test_data"] = os.path.join(data_dir, 'test*.h5')
-        params["item_corpus"] = os.path.join(data_dir, 'item_corpus.h5')
+    json_file = os.path.join(params['data_root'], "feature_map.json")
+    feature_encoder = FeatureEncoder(**params)
+    feature_encoder.feature_map.load(json_file)
+    feature_map = feature_encoder.feature_map
 
     model = YouTubeNet(feature_map, **params)
     model.max_seq_length = feature_map.feature_specs['user_history']['max_len']
     model.count_parameters()  # print number of parameters used in model
     model.load_weights(model_file)
 
-    corpus = pd.read_csv('Yelp18/yelp18_m1/item_corpus.csv')
+    corpus = pd.read_csv(model_dir + '/item_corpus.csv')
     token2id, id2token = {}, {}
     for i, row in corpus.iterrows():
         id = row['item_id']
@@ -94,12 +81,9 @@ def model_fn(model_dir):
         device = torch.device(device)
         print("device", device)
 
-        model_file_path = os.path.join(model_dir, "model.pt")
-        print(f"model_file_path: :  {model_file_path}")
-
         # Initialize the pytorch model
         model = load_data_and_model(
-            model_file=model_file_path
+            model_dir=model_dir
         )
         # model.dataset = dataset
         print("--> model network is loaded")
