@@ -52,7 +52,33 @@ def evaluate_metrics(user_embs,
 def evaluate_block(user_embs, faiss_index, query_indices, train_user2items, 
                    valid_user2items, metric_funcs, max_topk):
     # set to topk=500 here since the retrieval results may contain clicked items
-    scores, indices = faiss_index.search(user_embs, topk=500)
+    print("user embs", user_embs.shape)
+
+    if len(user_embs.shape) == 2:
+        # Normal user vec evaluation
+        scores, indices = faiss_index.search(user_embs, topk=500)
+    else:
+        # Multi interests user vec evaluation
+        ni = user_embs.shape[1]  # num_interest
+
+        # shape=(batch_size*num_interest, embedding_dim)
+        user_embs = np.reshape(user_embs, [-1, user_embs.shape[-1]])
+
+        scores, indices = faiss_index.search(user_embs, topk=500)
+        scores_selected, indices_selected = [], []
+        for i in range(user_embs.shape[0]):
+            item_list_set = set()
+            item_list = list(zip(np.reshape(indices[i * ni:(i + 1) * ni], -1), np.reshape(scores[i * ni:(i + 1) * ni], -1)))
+            item_list.sort(key=lambda x: x[1], reverse=True)
+            for j in range(len(item_list)):
+                if item_list[j][0] not in item_list_set and item_list[j][0] != 0:
+                    item_list_set.add(item_list[j][0])
+                    scores_selected.append(item_list[j][1])
+                    indices_selected.append(item_list[j][0])
+                    if len(item_list_set) >= 500:
+                        break
+        scores, indices = np.array(scores_selected), np.array(indices_selected)
+
     # mask out items already clicked in train data
     mask = np.zeros((user_embs.shape[0], faiss_index.index.ntotal))
     for i, query_index in enumerate(query_indices):

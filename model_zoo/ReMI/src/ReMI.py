@@ -81,32 +81,28 @@ class ReMI(BaseModel):
         label_ids = item_dict[self.item_id_field].view(labels.size(0), self.num_negs + 1)[:,0]
         label_emb_dict = self.embedding_layer({self.item_id_field: label_ids}, feature_source="item")
         label_emb = label_emb_dict[self.item_id_field]
-        user_vecs, readout, atten = self.user_tower(user_dict, label_emb)
+        readout, atten = self.user_tower(user_dict, label_emb=label_emb)
         item_vecs = self.item_tower(item_dict)
         item_corpus = self.embedding_layer.embedding_layers[self.item_id_field].weight
-        if self.training:
-            y_pred = torch.bmm(item_vecs.view(user_vecs.size(0), self.num_negs + 1, -1),
+        y_pred = torch.bmm(item_vecs.view(readout.size(0), self.num_negs + 1, -1),
                                readout.unsqueeze(-1)).squeeze(-1)
-        else:
-            y_pred = torch.bmm(item_vecs.view(user_vecs.size(0), self.num_negs + 1, -1),
-                           user_vecs.transpose(1, 2)).max(-1)[0]
-
         loss = self.loss_fn(label_ids.unsqueeze(-1), readout, item_corpus)
         loss += self.reg_ratio * self.attention_reg_loss(atten)
         return_dict = {"loss": loss, "y_pred": y_pred}
         return return_dict
 
-    def user_tower(self, inputs, label_emb):
+    def user_tower(self, inputs, label_emb=None):
         user_inputs = self.to_device(inputs)
         user_emb_dict = self.embedding_layer(user_inputs, feature_source="user")
         user_history_emb = user_emb_dict[self.user_history_field]
         mask = user_history_emb.sum(dim=-1) != 0
-        user_vec, read_out, atten, selection = self.comi_aggregation(user_history_emb, label_emb, mask)
-
+        user_vec, atten = self.comi_aggregation(user_history_emb, label_emb, mask)
         if self.similarity_score == "cosine":
             user_vec = F.normalize(user_vec)
-            read_out = F.normalize(read_out)
-        return user_vec, read_out, atten
+
+        if not self.training:
+            return user_vec
+        return user_vec, atten
 
     def item_tower(self, inputs):
         item_inputs = self.to_device(inputs)
@@ -161,18 +157,16 @@ class ComiRecAggregator(nn.Module):
         item_att_w = torch.where(torch.eq(atten_mask, 0), paddings, item_att_w)
         item_att_w = F.softmax(item_att_w, dim=-1)  # 矩阵A，shape=(batch_size, num_heads, maxlen)
 
-        # interest_emb即论文中的Vu
-        interest_emb = torch.matmul(item_att_w,  # shape=(batch_size, num_heads, maxlen)
+        # shape=(batch_size, num_heads, embedding_dim)
+        user_eb = torch.matmul(item_att_w,  # shape=(batch_size, num_heads, maxlen)
                                     item_eb  # shape=(batch_size, maxlen, embedding_dim)
                                     )  # shape=(batch_size, num_heads, embedding_dim)
 
-        # 用户多兴趣向量
-        user_eb = interest_emb  # shape=(batch_size, num_heads, embedding_dim)
+        if self.training:
+            # shape=(batch_size, embedding_dim)
+            user_eb, _ = self.read_out(user_eb, label_eb)
 
-        readout, selection = self.read_out(user_eb, label_eb)
-        # scores = None if self.is_sampler or self.name == 'UMI' else self.calculate_score(readout)
-
-        return user_eb, readout, item_att_w, selection
+        return user_eb, item_att_w
 
     def read_out(self, user_eb, label_eb):
 

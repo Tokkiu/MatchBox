@@ -14,7 +14,7 @@ ReMI_yelp18_m1:
     optimizer: adam
     learning_rate: 1.e-4
     batch_size: 512
-    num_negs: 10
+    num_negs: 1000
     embedding_dim: 64
     aggregator: mean
     gamma: 1
