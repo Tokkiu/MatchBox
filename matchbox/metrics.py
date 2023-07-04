@@ -52,7 +52,6 @@ def evaluate_metrics(user_embs,
 def evaluate_block(user_embs, faiss_index, query_indices, train_user2items, 
                    valid_user2items, metric_funcs, max_topk):
     # set to topk=500 here since the retrieval results may contain clicked items
-    print("user embs", user_embs.shape)
 
     if len(user_embs.shape) == 2:
         # Normal user vec evaluation

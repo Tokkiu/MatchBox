@@ -40,8 +40,7 @@ class ReMI(BaseModel):
                  similarity_score="dot",
                  interest_num=4,
                  beta=10,
-                 reg_ratio=0.1,
-                 nce_ratio=0.1,
+                 reg_ratio=10,
                  **kwargs):
         super(ReMI, self).__init__(feature_map,
                                       model_id=model_id, 
@@ -59,7 +58,6 @@ class ReMI(BaseModel):
         self.embedding_layer = EmbeddingDictLayer(feature_map, embedding_dim)
         self.dropout = nn.Dropout(net_dropout)
         self.reg_ratio = reg_ratio
-        self.nce_ratio = nce_ratio
         self.max_len = self.feature_map.feature_specs[self.user_history_field]['max_len']
         self.item_num = self.feature_map.feature_specs[self.user_history_field]['vocab_size']
         self.comi_aggregation = ComiRecAggregator(embedding_dim, interest_num=interest_num, seq_len=self.max_len)

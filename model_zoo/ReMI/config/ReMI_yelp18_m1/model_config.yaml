@@ -38,4 +38,6 @@ ReMI_yelp18_m1:
     seed: 2019
     monitor: 'Recall(k=20)'
     monitor_mode: 'max'
+    beta: 10
+    reg_ratio: 10
     
