@@ -69,6 +69,7 @@ class BaseModel(nn.Module):
                                           noise_ratio=kwargs.get("noise_ratio"),
                                           beta=kwargs.get("beta"),
                                           norm_term=kwargs.get("norm_term"),
+                                          loss_type=kwargs.get("nce_loss_type"),
                                           device=self.device)
         else:
             raise NotImplementedError("loss={} is not supported.".format(loss))

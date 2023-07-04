@@ -28,8 +28,6 @@ ReMI_yelp18_m1:
     enable_bias: False
     similarity_score: cosine
     loss: NCELoss
-    margin: 0.9
-    negative_weight: 150
     sampling_num_process: 1
     fix_sampling_seeds: False
     ignore_pos_items: False
@@ -38,6 +36,6 @@ ReMI_yelp18_m1:
     seed: 2019
     monitor: 'Recall(k=20)'
     monitor_mode: 'max'
-    beta: 10
-    reg_ratio: 10
+    beta: 1
+    reg_ratio: 1
     

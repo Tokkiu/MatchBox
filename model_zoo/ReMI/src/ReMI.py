@@ -62,6 +62,7 @@ class ReMI(BaseModel):
         self.comi_aggregation = ComiRecAggregator(embedding_dim, interest_num=interest_num, seq_len=self.max_len)
 
         kwargs['noise'] = None
+        kwargs['nce_loss_type'] = 'sampled'
         kwargs['noise_ratio'] = self.num_negs
         kwargs['norm_term'] = 0
         kwargs['beta'] = beta
@@ -83,6 +84,7 @@ class ReMI(BaseModel):
         y_pred = torch.bmm(item_vecs.view(readout.size(0), self.num_negs + 1, -1),
                                readout.unsqueeze(-1)).squeeze(-1)
         loss = self.loss_fn(label_ids.unsqueeze(-1), readout, item_corpus)
+        print(loss, self.attention_reg_loss(atten))
         loss += self.reg_ratio * self.attention_reg_loss(atten)
         return_dict = {"loss": loss, "y_pred": y_pred}
         return return_dict
