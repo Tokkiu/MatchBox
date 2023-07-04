@@ -74,7 +74,7 @@ class ReMI(BaseModel):
         Inputs: [user_dict, item_dict, label]
         """
         user_dict, item_dict, labels = inputs[0:3]
-        label_ids = item_dict[self.item_id_field].view(labels.size(0), self.num_negs + 1)[:,0]
+        label_ids = item_dict[self.item_id_field].view(labels.size(0), self.num_negs + 1)[:,0].to(self.device)
         label_emb_dict = self.embedding_layer({self.item_id_field: label_ids}, feature_source="item")
         label_emb = label_emb_dict[self.item_id_field]
         readout, atten = self.user_tower(user_dict, label_emb=label_emb)
