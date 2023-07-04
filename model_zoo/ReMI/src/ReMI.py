@@ -59,15 +59,13 @@ class ReMI(BaseModel):
         self.dropout = nn.Dropout(net_dropout)
         self.reg_ratio = reg_ratio
         self.max_len = self.feature_map.feature_specs[self.user_history_field]['max_len']
-        self.item_num = self.feature_map.feature_specs[self.user_history_field]['vocab_size']
         self.comi_aggregation = ComiRecAggregator(embedding_dim, interest_num=interest_num, seq_len=self.max_len)
 
-        kwargs['loss'] = 'NCELoss'
         kwargs['noise'] = None
         kwargs['noise_ratio'] = self.num_negs
         kwargs['norm_term'] = 0
         kwargs['beta'] = beta
-        kwargs['item_num'] = self.item_num
+        kwargs['item_num'] = self.feature_map.feature_specs[self.user_history_field]['vocab_size']
 
         self.compile(lr=learning_rate,**kwargs)
             
