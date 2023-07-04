@@ -138,7 +138,7 @@ class ComiRecAggregator(nn.Module):
         # item_eb = self.embeddings(item_list)
         item_eb = item_eb * torch.reshape(mask, (-1, self.seq_len, 1))
 
-        # 历史物品嵌入序列，shape=(batch_size, maxlen, embedding_dim)
+        # shape=(batch_size, maxlen, embedding_dim)
         item_eb = torch.reshape(item_eb, (-1, self.seq_len, self.hidden_size))
 
         # shape=(batch_size, maxlen, hidden_size*4)
@@ -152,7 +152,7 @@ class ComiRecAggregator(nn.Module):
         paddings = torch.ones_like(atten_mask, dtype=torch.float) * (-2 ** 32 + 1)
 
         item_att_w = torch.where(torch.eq(atten_mask, 0), paddings, item_att_w)
-        item_att_w = F.softmax(item_att_w, dim=-1)  # 矩阵A，shape=(batch_size, num_heads, maxlen)
+        item_att_w = F.softmax(item_att_w, dim=-1)  # shape=(batch_size, num_heads, maxlen)
 
         # shape=(batch_size, num_heads, embedding_dim)
         user_eb = torch.matmul(item_att_w,  # shape=(batch_size, num_heads, maxlen)
