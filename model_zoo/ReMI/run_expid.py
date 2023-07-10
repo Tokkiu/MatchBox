@@ -22,12 +22,14 @@ if __name__ == '__main__':
     parser.add_argument('--expid', type=str, help='The experiment id to run.')
     parser.add_argument('--gpu', type=int, default=-1, help='The gpu index, -1 for cpu')
     parser.add_argument('--beta', type=int, default=10, help='beta')
-    parser.add_argument('--reg_ratio', type=float, default=-10, help='reg')
+    parser.add_argument('--reg', type=float, default=-10, help='reg')
 
     args = vars(parser.parse_args())
     experiment_id = args['expid']
     params = load_config(args['config'], experiment_id)
     params['gpu'] = args['gpu']
+    params['beta'] = args['beta']
+    params['reg_ratio'] = args['reg']
 
     set_logger(params)
     logging.info(print_to_json(params))
