@@ -37,5 +37,5 @@ ReMI_yelp18_m1:
     monitor: 'Recall(k=20)'
     monitor_mode: 'max'
     beta: 1
-    reg_ratio: 1
+    reg_ratio: 10
     
