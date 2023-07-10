@@ -26,8 +26,8 @@ ReMI_yelp18_m1:
     net_dropout: 0.1
     attention_dropout: 0
     enable_bias: False
-    similarity_score: cosine
-    loss: CosineContrastiveLoss
+    similarity_score: dot
+    loss: NCELoss
     sampling_num_process: 1
     fix_sampling_seeds: False
     ignore_pos_items: False
