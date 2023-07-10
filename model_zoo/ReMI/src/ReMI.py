@@ -83,7 +83,8 @@ class ReMI(BaseModel):
         item_corpus = self.embedding_layer.embedding_layers[self.item_id_field].weight
         y_pred = torch.bmm(item_vecs.view(readout.size(0), self.num_negs + 1, -1),
                                readout.unsqueeze(-1)).squeeze(-1)
-        loss = self.loss_fn(label_ids.unsqueeze(-1), readout, item_corpus)
+        # loss = self.loss_fn(label_ids.unsqueeze(-1), readout, item_corpus)
+        loss = self.get_total_loss(y_pred, labels)
         # print(loss, self.attention_reg_loss(atten))
         loss += self.reg_ratio * self.attention_reg_loss(atten)
         return_dict = {"loss": loss, "y_pred": y_pred}
