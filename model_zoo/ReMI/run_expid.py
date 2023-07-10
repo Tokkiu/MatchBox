@@ -21,7 +21,9 @@ if __name__ == '__main__':
     parser.add_argument('--config', type=str, default='../config/', help='The config directory.')
     parser.add_argument('--expid', type=str, help='The experiment id to run.')
     parser.add_argument('--gpu', type=int, default=-1, help='The gpu index, -1 for cpu')
-    
+    parser.add_argument('--beta', type=int, default=10, help='beta')
+    parser.add_argument('--reg_ratio', type=float, default=-10, help='reg')
+
     args = vars(parser.parse_args())
     experiment_id = args['expid']
     params = load_config(args['config'], experiment_id)
